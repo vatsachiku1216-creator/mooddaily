@@ -1,0 +1,285 @@
+/* 1. RESET */
+html, body {
+    background-color: #000;
+    color: #ffffff;
+    margin: 0;
+    padding: 0;
+    font-family: 'Courier New', Courier, monospace;
+    text-transform: uppercase;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+}
+
+/* 2. AUTH SCREEN */
+#auth-container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+#login-btn {
+    background: transparent;
+    color: #ffffff;
+    border: 1px solid #ffffff;
+    padding: 15px 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    font-family: inherit;
+    transition: 0.3s;
+    letter-spacing: 2px;
+}
+
+#login-btn:hover {
+    background: #ffffff;
+    color: #000;
+}
+
+.google-icon { 
+    width: 20px; 
+    margin-right: 15px; 
+    filter: brightness(0) invert(1); 
+}
+
+/* 3. NAVBAR */
+.navbar {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    padding: 25px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-sizing: border-box;
+    z-index: 1000;
+    font-size: 15px;
+    letter-spacing: 2px;
+}
+
+#logout-btn {
+    background: transparent;
+    border: 1px solid #ffffff;
+    color: #ffffff;
+    padding: 5px 15px;
+    cursor: pointer;
+    font-family: inherit;
+    text-transform: uppercase;
+}
+
+/* 4. MAIN CONTAINER */
+.container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+h1 { 
+    letter-spacing: 10px; 
+    margin-bottom: 40px; 
+    font-size: 20px; 
+    color: #ffffff;
+}
+
+.mood-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+    max-width: 500px;
+}
+
+.mood-card {
+    background: transparent;
+    color: #ffffff;
+    border: 1px solid #ffffff;
+    padding: 30px;
+    font-family: inherit;
+    letter-spacing: 4px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.mood-card:hover { 
+    background: #ffffff; 
+    color: #000; 
+}
+
+/* 5. MESSAGE AREA */
+.full-page-message {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    animation: slideUp 0.6s ease-out forwards;
+}
+
+#daily-text { 
+    font-size: 2.2rem; 
+    text-align: center; 
+    padding: 0 10%; 
+    margin-bottom: 10px; 
+    color: #ffffff;
+    line-height: 1.4;
+}
+
+#daily-text::after { 
+    content: "_"; 
+    animation: blink 0.8s infinite; 
+    color: #ffffff;
+}
+
+#mood-label { 
+    color: #cccccc; 
+    font-size: 13px; 
+    margin-bottom: 15px; 
+    letter-spacing: 5px;
+}
+
+/* VERTICAL ACTION STACK */
+.actions-container {
+    margin-top: 20px;
+    margin-bottom: 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    align-items: center;
+    width: 100%;
+}
+
+.action-row {
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: #ffffff;
+    opacity: 0;
+    animation: fadeInRow 1.2s ease forwards;
+    display: flex;
+    align-items: center;
+}
+
+/* Staggered animation: line 1 then line 2 */
+.action-row:nth-child(1) { animation-delay: 1.2s; }
+.action-row:nth-child(2) { animation-delay: 1.5s; }
+
+.label {
+    color: #888888; 
+    margin-right: 15px;
+    display: inline-block;
+    width: 65px; 
+    text-align: right;
+}
+
+#do-text, #dont-text {
+    color: #ffffff;
+    font-weight: normal;
+    text-align: left;
+}
+
+.reset-btn {
+    background: transparent;
+    color: #666666;
+    border: 1px solid #333333;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 10px;
+    letter-spacing: 2px;
+    transition: 0.3s;
+}
+
+.reset-btn:hover {
+    color: #ffffff;
+    border-color: #ffffff;
+}
+
+/* UTILS & ANIMATIONS */
+.hidden { display: none !important; }
+
+@keyframes slideUp { 
+    from { transform: translateY(100%); } 
+    to { transform: translateY(0); } 
+}
+
+@keyframes fadeInRow {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes blink { 
+    0%, 100% { opacity: 1; } 
+    50% { opacity: 0; } 
+}
+
+/* LOADER */
+#loader {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 3000;
+}
+
+.celestial-body {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    margin-bottom: 40px;
+}
+
+.moon {
+    width: 50px;
+    height: 50px;
+    background: #ffffff;
+    border-radius: 50%;
+    position: absolute;
+    top: 25px; left: 25px;
+    box-shadow: 0 0 40px rgba(255, 255, 255, 0.5);
+}
+
+.orbit {
+    width: 100%;
+    height: 100%;
+    animation: rotate 3s linear infinite;
+}
+
+.star {
+    position: absolute;
+    color: #ffffff;
+    font-size: 18px;
+}
+
+.s1 { top: -10px; left: 50%; }
+.s2 { bottom: -10px; left: 50%; }
+.s3 { left: -10px; top: 50%; }
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.loading-text {
+    font-size: 12px;
+    letter-spacing: 8px;
+    color: #ffffff;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
