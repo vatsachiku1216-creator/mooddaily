@@ -137,8 +137,8 @@ const handleMood = async (mood) => {
     
     // Strict prompt to minimize extra output
     const PROMPT = isVibe 
-        ? `Gen Z slang for ${mood}. Format: "Quote" | Do-Action | Don't-Action. NO LABELS. At least 3 words.` 
-        : `Brutalist noir philosophy for ${mood}. Format: "Quote" | Do-Action | Don't-Action. NO LABELS. At least 3 words.`;
+    ? `Gen Z slang for ${mood}. Format: "Quote" | Do-Action | Don't-Action. NO LABELS. Quote must be 3+ words.` 
+    : `Brutalist noir philosophy for ${mood}. Format: "Quote" | Do-Action | Don't-Action. NO LABELS. Quote must be 3+ words. Do not add any text after the Don't-Action.`;
 
     const model = "gemini-2.5-flash-lite"; 
     const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${SECURE_GEMINI_KEY}`;
@@ -157,13 +157,22 @@ const handleMood = async (mood) => {
 const data = await response.json();
 const rawText = data.candidates[0].content.parts[0].text.trim();
 
-// 1. Remove any bolding asterisks and split by the pipe character
-// 2. IMPORTANT: .slice(0, 3) ensures we ignore any 4th or 5th "extra" parts
+// 1. Split by pipe and take only the first 3 parts
 const parts = rawText.replace(/\*/g, '').split('|').map(s => s.trim()).slice(0, 3);
 
-// 3. Clean up any accidental "Do:" or "Don't:" labels
-const cleanDo = parts[1] ? parts[1].replace(/^do:?\s*/i, "") : "Wait.";
-const cleanDont = parts[2] ? parts[2].replace(/^don't:?\s*/i, "") : "Panic.";
+// 2. NEW: Function to strip hallucinated quotes from the end of a string
+// This removes things like: "Don't do this. 'Shadows are real.'" -> "Don't do this."
+const stripHallucinatedQuote = (str) => {
+    if (!str) return "";
+    // This regex looks for the first occurrence of a quote mark after some text
+    // and cuts everything from that quote mark onwards.
+    const quoteIndex = str.indexOf('"');
+    return quoteIndex !== -1 ? str.substring(0, quoteIndex).trim() : str;
+};
+
+// 3. Clean Labels AND strip extra quotes from the actions
+const cleanDo = parts[1] ? stripHallucinatedQuote(parts[1].replace(/^do:?\s*/i, "")) : "Wait.";
+const cleanDont = parts[2] ? stripHallucinatedQuote(parts[2].replace(/^don't:?\s*/i, "")) : "Panic.";
 
 const moodData = { 
     quote: parts[0] || "The void is silent.", 
@@ -242,4 +251,3 @@ function typeWriter(text, id, callback) {
     }
     type();
 }
-
