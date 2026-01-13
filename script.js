@@ -154,23 +154,23 @@ const handleMood = async (mood) => {
 
         if (!response.ok) throw new Error(`API_${response.status}`);
 
-        const data = await response.json();
-        const rawText = data.candidates[0].content.parts[0].text.trim();
-        
-        // 1. Split by pipe and 2. slice(0, 3) to ignore AI hallucinations
-        const allParts = rawText.replace(/\*/g, '').split('|').map(s => s.trim());
-        const parts = allParts.slice(0, 3); 
+const data = await response.json();
+const rawText = data.candidates[0].content.parts[0].text.trim();
 
-        // Fix: Clean "Do:" or "Don't:" duplication
-        const cleanDo = parts[1] ? parts[1].replace(/^do:?\s*/i, "") : "Wait.";
-        const cleanDont = parts[2] ? parts[2].replace(/^don't:?\s*/i, "") : "Panic.";
+// 1. Remove any bolding asterisks and split by the pipe character
+// 2. IMPORTANT: .slice(0, 3) ensures we ignore any 4th or 5th "extra" parts
+const parts = rawText.replace(/\*/g, '').split('|').map(s => s.trim()).slice(0, 3);
 
-        const moodData = { 
-            quote: parts[0] || "The void is silent.", 
-            doAction: cleanDo, 
-            dontAction: cleanDont, 
-            moodType: mood 
-        };
+// 3. Clean up any accidental "Do:" or "Don't:" labels
+const cleanDo = parts[1] ? parts[1].replace(/^do:?\s*/i, "") : "Wait.";
+const cleanDont = parts[2] ? parts[2].replace(/^don't:?\s*/i, "") : "Panic.";
+
+const moodData = { 
+    quote: parts[0] || "The void is silent.", 
+    doAction: cleanDo, 
+    dontAction: cleanDont, 
+    moodType: mood 
+};
 
         localStorage.setItem('moodDate', new Date().toDateString());
         localStorage.setItem('moodData', JSON.stringify(moodData));
@@ -242,3 +242,4 @@ function typeWriter(text, id, callback) {
     }
     type();
 }
+
