@@ -6,9 +6,10 @@ html, body {
     padding: 0;
     font-family: 'Courier New', Courier, monospace;
     text-transform: uppercase;
-    height: 100vh;
+    /* Changed height/overflow to allow scrolling on mobile if text is long */
+    min-height: 100vh;
     width: 100vw;
-    overflow: hidden;
+    overflow-x: hidden;
     transition: background-color 0.4s, color 0.4s;
 }
 
@@ -20,6 +21,8 @@ html, body {
     justify-content: center;
     align-items: center;
     background-color: #000;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
 #login-btn {
@@ -33,6 +36,7 @@ html, body {
     font-family: inherit;
     transition: 0.3s;
     letter-spacing: 2px;
+    max-width: 100%;
 }
 
 #login-btn:hover {
@@ -51,15 +55,17 @@ html, body {
     position: fixed;
     top: 0;
     width: 100%;
-    padding: 25px 40px;
+    padding: clamp(10px, 4vw, 25px) clamp(15px, 5vw, 40px);
     display: flex;
     justify-content: space-between;
     align-items: center;
     box-sizing: border-box;
     z-index: 1000;
-    font-size: 15px;
+    font-size: clamp(10px, 2vw, 15px);
     letter-spacing: 2px;
     background-color: transparent;
+    flex-wrap: wrap; /* Wraps on small mobile */
+    gap: 10px;
 }
 
 .vibe-toggle-container {
@@ -110,12 +116,14 @@ input:checked + .slider:before {
 
 /* 4. MAIN CONTAINER & SELECTION GRID */
 #app-container {
-    height: 100vh;
+    min-height: 100vh;
     width: 100vw;
     display: flex;
     justify-content: center;
     align-items: center;
     position: relative;
+    padding: 80px 20px 40px; /* Space for navbar */
+    box-sizing: border-box;
 }
 
 .container {
@@ -125,6 +133,12 @@ input:checked + .slider:before {
     flex-direction: column;
     align-items: center;
     text-align: center;
+}
+
+#selection-page h2 {
+    font-size: clamp(1rem, 4vw, 1.5rem);
+    letter-spacing: 5px;
+    margin-bottom: 30px;
 }
 
 .mood-grid {
@@ -138,14 +152,15 @@ input:checked + .slider:before {
     background: transparent;
     color: #ffffff;
     border: 1px solid #ffffff;
-    padding: 30px;
+    padding: clamp(15px, 5vw, 30px);
     font-family: inherit;
     letter-spacing: 4px;
     cursor: pointer;
     transition: 0.3s;
     width: 100%;
     text-transform: uppercase;
-    font-size: 14px;
+    font-size: clamp(12px, 2.5vw, 14px);
+    box-sizing: border-box;
 }
 
 .mood-card:hover { 
@@ -163,23 +178,24 @@ input:checked + .slider:before {
     background: #000;
     display: flex;
     flex-direction: column;
-    justify-content: center; /* PERFECT VERTICAL CENTER */
-    align-items: center;     /* PERFECT HORIZONTAL CENTER */
+    justify-content: center;
+    align-items: center;
     z-index: 500;
     text-align: center;
     box-sizing: border-box;
-    /* Remove padding-top if it was pushing text down */
-    padding: 0 20px; 
+    padding: 40px 20px;
+    overflow-y: auto; /* Handles long quotes on mobile */
 }
 
 #daily-text { 
-    font-size: 2.2rem; 
+    font-size: clamp(1.2rem, 6vw, 2.2rem); /* Fluid size */
     padding: 0 5%; 
-    margin: 0 0 30px 0; /* Reset margins */
+    margin: 0 0 30px 0;
     color: #ffffff;
     line-height: 1.4;
     max-width: 900px;
     width: 100%;
+    word-wrap: break-word;
 }
 
 .actions-container {
@@ -196,13 +212,16 @@ input:checked + .slider:before {
 }
 
 .action-row {
-    font-size: 14px;
+    font-size: clamp(10px, 2.5vw, 14px);
     letter-spacing: 3px;
     color: #ffffff;
     opacity: 0;
     transform: translateY(15px);
     transition: opacity 0.8s ease, transform 0.8s ease;
-    margin-bottom: 10px;
+    margin-bottom: 15px;
+    width: 100%;
+    padding: 0 10px;
+    box-sizing: border-box;
 }
 
 .action-row.reveal {
@@ -210,9 +229,9 @@ input:checked + .slider:before {
     transform: translateY(0);
 }
 
-/* NEW: Transparent Reset Button */
+/* 6. RESET BUTTON */
 .reset-btn {
-    margin-top: 70px; 
+    margin-top: clamp(30px, 8vw, 70px); 
     background: transparent; 
     border: 1px solid rgba(255, 255, 255, 0.2); 
     color: #666; 
@@ -230,8 +249,7 @@ input:checked + .slider:before {
     background: rgba(255, 255, 255, 0.05);
 }
 
-/* 6. VIBE MODE OVERRIDES */
-/* 6. VIBE MODE OVERRIDES */
+/* 7. VIBE MODE OVERRIDES */
 body.vibe-mode {
     background-color: #ffffff !important;
     color: #000000 !important;
@@ -243,7 +261,6 @@ body.vibe-mode #loader {
     background-color: #ffffff !important;
 }
 
-/* Updated: Added .label and .action-row to ensure visibility */
 body.vibe-mode #daily-text,
 body.vibe-mode #do-text,
 body.vibe-mode #dont-text,
@@ -253,6 +270,7 @@ body.vibe-mode #user-display,
 body.vibe-mode #clock-display,
 body.vibe-mode .vibe-label,
 body.vibe-mode h1,
+body.vibe-mode h2,
 body.vibe-mode #mood-label,
 body.vibe-mode .loading-text,
 body.vibe-mode .star {
@@ -261,7 +279,7 @@ body.vibe-mode .star {
 
 body.vibe-mode .moon {
     background: #000000 !important;
-    box-shadow: 0 0 40px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
 }
 
 body.vibe-mode .mood-card, 
@@ -271,31 +289,14 @@ body.vibe-mode #logout-btn {
     color: #000000 !important;
 }
 
-body.vibe-mode .reset-btn {
-    border-color: rgba(0, 0, 0, 0.2) !important;
-    color: #888 !important;
-}
-
 body.vibe-mode .mood-card:hover,
 body.vibe-mode #login-btn:hover {
     background-color: #000000 !important;
     color: #ffffff !important;
 }
 
-body.vibe-mode .reset-btn:hover {
-    border-color: #000000 !important;
-    color: #000000 !important;
-    background: rgba(0, 0, 0, 0.05) !important;
-}
+body.vibe-mode .google-icon { filter: none; }
 
-body.vibe-mode .google-icon {
-    filter: none;
-}
-
-/* Optional: Make the "DO:" and "DON'T:" labels a dark grey in vibe mode for better style */
-body.vibe-mode .label {
-    color: #555555 !important;
-}
 /* UTILS & ANIMATIONS */
 .hidden { display: none !important; }
 
@@ -325,25 +326,21 @@ body.vibe-mode .label {
 
 .celestial-body {
     position: relative;
-    width: 100px;
-    height: 100px;
+    width: 100px; height: 100px;
     margin-bottom: 40px;
 }
 
 .moon {
-    width: 50px;
-    height: 50px;
+    width: 50px; height: 50px;
     background: #ffffff;
     border-radius: 50%;
     position: absolute;
     top: 25px; left: 25px;
     box-shadow: 0 0 40px rgba(255, 255, 255, 0.5);
-    transition: background 0.4s;
 }
 
 .orbit {
-    width: 100%;
-    height: 100%;
+    width: 100%; height: 100%;
     animation: rotate 3s linear infinite;
 }
 
@@ -363,8 +360,8 @@ body.vibe-mode .label {
 }
 
 .loading-text {
-    font-size: 12px;
-    letter-spacing: 8px;
+    font-size: 10px;
+    letter-spacing: 5px;
     color: #ffffff;
     animation: pulse 1s infinite;
 }
@@ -372,13 +369,4 @@ body.vibe-mode .label {
 @keyframes pulse {
     0%, 100% { opacity: 0.5; }
     50% { opacity: 1; }
-}
-
-.vibe-toggle-container {
-    transition: opacity 0.3s ease, visibility 0.3s ease;
-}
-
-/* This ensures the toggle disappears cleanly */
-.vibe-toggle-container.hidden {
-    display: none !important;
 }
