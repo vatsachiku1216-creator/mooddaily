@@ -1,6 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getRemoteConfig, getValue, fetchAndActivate } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-remote-config.js";
 
+// 1. FIREBASE CONFIG
 const firebaseConfig = {
     apiKey: "AIzaSyBoMGDWZi8X_8rqMXVM-z6KPVw3AFQ2HQ4",
     authDomain: "mooddaily.firebaseapp.com",
@@ -15,63 +17,119 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-// UI Elements
+// 2. REMOTE CONFIG (The "Vault")
+const remoteConfig = getRemoteConfig(app);
+remoteConfig.settings.minimumFetchIntervalMillis = 3600000; 
+
+let SECURE_GEMINI_KEY = "";
+
+async function initSecurity() {
+    try {
+        await fetchAndActivate(remoteConfig);
+        SECURE_GEMINI_KEY = getValue(remoteConfig, 'GEMINI_API_KEY').asString();
+        console.log("Security Handshake Complete.");
+    } catch (err) {
+        console.error("Vault Access Failed:", err);
+    }
+}
+initSecurity();
+
+// 3. UI STATE & ELEMENTS
 const loginBtn = document.getElementById('login-btn');
 const logoutBtn = document.getElementById('logout-btn');
 const authContainer = document.getElementById('auth-container');
 const appContainer = document.getElementById('app-container');
+const mainNav = document.getElementById('main-nav');
 const loader = document.getElementById('loader');
+const vibeToggle = document.getElementById('vibe-toggle');
+const vibeToggleContainer = document.querySelector('.vibe-toggle-container');
 
-// Auth Logic
-loginBtn.onclick = () => signInWithPopup(auth, provider);
-logoutBtn.onclick = () => signOut(auth);
+let isThinking = false;
 
+// 4. AUTHENTICATION
 onAuthStateChanged(auth, (user) => {
+    loader.classList.add('hidden');
     if (user) {
         authContainer.classList.add('hidden');
         appContainer.classList.remove('hidden');
+        if (mainNav) mainNav.classList.remove('hidden');
         document.getElementById('user-display').innerText = `HI, ${user.displayName.split(' ')[0]}`;
         checkDailyStatus();
     } else {
         authContainer.classList.remove('hidden');
         appContainer.classList.add('hidden');
+        if (mainNav) mainNav.classList.add('hidden');
     }
 });
 
-// Click Listener for Mood Cards
-document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('mood-card')) {
-        const selectedMood = e.target.getAttribute('data-mood');
-        handleMood(selectedMood);
-    }
-});
+loginBtn.onclick = () => signInWithPopup(auth, provider);
+logoutBtn.onclick = () => signOut(auth);
 
-// Clock Logic
+// 5. CLOCK & PERSISTENT TOGGLE
+if (vibeToggle) {
+    const savedVibe = localStorage.getItem('vibeEnabled');
+    if (savedVibe === 'true') {
+        vibeToggle.checked = true;
+        document.body.classList.add('vibe-mode');
+    }
+
+    vibeToggle.onchange = () => {
+        const isEnabled = vibeToggle.checked;
+        document.body.classList.toggle('vibe-mode', isEnabled);
+        localStorage.setItem('vibeEnabled', isEnabled);
+    };
+}
+
 function updateClock() {
-    const now = new Date();
-    document.getElementById('clock-display').innerText = now.toLocaleTimeString('en-GB');
+    const clock = document.getElementById('clock-display');
+    if (clock) clock.innerText = new Date().toLocaleTimeString('en-GB');
 }
 setInterval(updateClock, 1000);
+updateClock();
 
-// --- AI MOOD LOGIC ---
-const GEMINI_API_KEY = "AIzaSyATDqsVQ0FQAayHbtpomOaFum20HAGE3ao"; 
+// 6. CLICK LISTENER
+document.addEventListener('click', (e) => {
+    const card = e.target.closest('.mood-card');
+    if (!card || isThinking) return;
 
+    const mood = card.getAttribute('data-mood');
+    const today = new Date().toDateString();
+    const savedDate = localStorage.getItem('moodDate');
+
+    if (savedDate === today) {
+        const savedData = JSON.parse(localStorage.getItem('moodData'));
+        showFullPageMessage(savedData.moodType, savedData, true);
+    } else {
+        handleMood(mood);
+    }
+});
+
+// 7. AI LOGIC
 const handleMood = async (mood) => {
-    const selectionPage = document.getElementById('selection-page');
-    
-    // 1. Enter Loading State
-    selectionPage.classList.add('hidden');
+    if (!SECURE_GEMINI_KEY) {
+        await initSecurity();
+        if (!SECURE_GEMINI_KEY) {
+            alert("Security check in progress. Please wait.");
+            return;
+        }
+    }
+
+    isThinking = true; 
+    document.getElementById('selection-page').classList.add('hidden');
+    if (vibeToggleContainer) vibeToggleContainer.classList.add('hidden');
     loader.classList.remove('hidden');
 
-    const PROMPT = `You are a minimalist philosopher. For someone feeling ${mood}, provide:
-    1. A one-sentence, noir, brutalist quote.
-    2. A single "Do" action (2-4 words).
-    3. A single "Don't" action (2-4 words).
-    Format it exactly like this: Quote | Do action | Don't action. 
-    No labels, no emojis. Max 25 words total.`;
+    const isVibe = vibeToggle && vibeToggle.checked;
+    // Updated Prompt to enforce strict formatting and no labels
+const PROMPT = isVibe 
+    ? `Gen Z slang for ${mood}. Format: "Quote" | Do-Action | Don't-Action. NO LABELS. End response after the Don't-Action.` 
+    : `Brutalist noir philosophy for ${mood}. Format: "Quote" | Do-Action | Don't-Action. NO LABELS. End response immediately after the Don't-Action.`;
+
+    const model = "gemini-2.5-flash-lite"; 
+    const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${SECURE_GEMINI_KEY}`;
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -79,85 +137,92 @@ const handleMood = async (mood) => {
             })
         });
 
+        if (!response.ok) throw new Error(`API_${response.status}`);
+
         const data = await response.json();
         const rawText = data.candidates[0].content.parts[0].text.trim();
-        
-        // Split the response into parts
-        const [quote, doAction, dontAction] = rawText.split('|').map(s => s.trim());
+        const parts = rawText.replace(/\*/g, '').split('|').map(s => s.trim());
 
-        // Create the data object
+        // FIX: Clean prefixes like "Do:" or "Don't:" to avoid duplication
+        const cleanDo = parts[1] ? parts[1].replace(/^do:?\s*/i, "") : "Wait.";
+        const cleanDont = parts[2] ? parts[2].replace(/^don't:?\s*/i, "") : "Panic.";
+
         const moodData = { 
-            quote: quote || "The archive is silent.", 
-            doAction: doAction || "Wait.", 
-            dontAction: dontAction || "Rush.", 
+            quote: parts[0] || "The void is silent.", 
+            doAction: cleanDo, 
+            dontAction: cleanDont, 
             moodType: mood 
         };
 
-        // Save to LocalStorage
         localStorage.setItem('moodDate', new Date().toDateString());
         localStorage.setItem('moodData', JSON.stringify(moodData));
-
-        // 2. Exit Loading State & Show Result
+        
         loader.classList.add('hidden');
         showFullPageMessage(mood, moodData);
 
     } catch (error) {
         console.error("AI Error:", error);
         loader.classList.add('hidden');
-        showFullPageMessage(mood, { quote: "SYSTEM TIMEOUT. THE ARCHIVE IS SILENT.", doAction: "Retry.", dontAction: "Panic." });
+        const fallback = isVibe 
+            ? { quote: "SERVERS GHOSTED US.", doAction: "Stay chill.", dontAction: "Panic." }
+            : { quote: "THE SYSTEM IS OFFLINE.", doAction: "Reflect.", dontAction: "Inquire." };
+        showFullPageMessage(mood, fallback);
+    } finally {
+        isThinking = false; 
     }
 };
 
-// --- STABLE UI LOGIC ---
-
+// 8. UI DISPLAY LOGIC
 function checkDailyStatus() {
-    const lastSavedDate = localStorage.getItem('moodDate');
-    const savedData = localStorage.getItem('moodData');
-    
-    if (lastSavedDate === new Date().toDateString() && savedData) {
-        const moodData = JSON.parse(savedData);
-        showFullPageMessage(moodData.moodType, moodData, true);
+    if (localStorage.getItem('moodDate') === new Date().toDateString()) {
+        const data = JSON.parse(localStorage.getItem('moodData'));
+        showFullPageMessage(data.moodType, data, true);
     }
 }
 
 function showFullPageMessage(mood, dataObj, isReturning = false) {
+    document.getElementById('selection-page').classList.add('hidden');
+    // Hide Vibe Toggle on the message page
+    if (vibeToggleContainer) vibeToggleContainer.classList.add('hidden');
+
     const area = document.getElementById('message-area');
-    const selectionPage = document.getElementById('selection-page');
-    
-    selectionPage.classList.add('hidden');
     area.classList.remove('hidden');
     area.classList.add('full-page-message');
     
     document.getElementById('mood-label').innerText = `TODAY: ${mood}`;
-    
+    const rows = document.querySelectorAll('.action-row');
+
+    // Logic for quotes only on the message
+    let quotedText = dataObj.quote.startsWith('"') ? dataObj.quote : `"${dataObj.quote}"`;
+
     if (isReturning) {
-        document.getElementById('daily-text').innerText = dataObj.quote;
+        document.getElementById('daily-text').innerText = quotedText;
         document.getElementById('do-text').innerText = dataObj.doAction;
         document.getElementById('dont-text').innerText = dataObj.dontAction;
+        rows.forEach(r => r.classList.add('reveal'));
     } else {
-        typeWriter(dataObj.quote, 'daily-text');
-        // Clear previous actions while typing
         document.getElementById('do-text').innerText = "";
         document.getElementById('dont-text').innerText = "";
+        rows.forEach(r => r.classList.remove('reveal'));
         
-        // Show actions after quote types
-        setTimeout(() => {
+        typeWriter(quotedText, 'daily-text', () => {
             document.getElementById('do-text').innerText = dataObj.doAction;
             document.getElementById('dont-text').innerText = dataObj.dontAction;
-        }, 1500);
+            setTimeout(() => rows.forEach(r => r.classList.add('reveal')), 200);
+        });
     }
 }
 
-function typeWriter(text, id) {
+function typeWriter(text, id, callback) {
     const el = document.getElementById(id);
+    if (!el) return;
     el.innerText = "";
     let i = 0;
     function type() {
         if (i < text.length) {
-            el.innerText += text.charAt(i);
-            i++;
+            el.innerText += text.charAt(i++);
             setTimeout(type, 50);
-        }
+        } else if (callback) callback();
     }
     type();
 }
