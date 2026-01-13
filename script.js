@@ -62,11 +62,12 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-loginBtn.onclick = () => signInWithPopup(auth, provider);
-logoutBtn.onclick = () => signOut(auth);
+if (loginBtn) loginBtn.onclick = () => signInWithPopup(auth, provider);
+if (logoutBtn) logoutBtn.onclick = () => signOut(auth);
 
 // 5. CLOCK & PERSISTENT TOGGLE
 if (vibeToggle) {
+    // Check localStorage on load
     const savedVibe = localStorage.getItem('vibeEnabled');
     if (savedVibe === 'true') {
         vibeToggle.checked = true;
@@ -76,7 +77,7 @@ if (vibeToggle) {
     vibeToggle.onchange = () => {
         const isEnabled = vibeToggle.checked;
         document.body.classList.toggle('vibe-mode', isEnabled);
-        localStorage.setItem('vibeEnabled', isEnabled);
+        localStorage.setItem('vibeEnabled', isEnabled); // Save preference
     };
 }
 
@@ -90,6 +91,13 @@ updateClock();
 // 6. CLICK LISTENER
 document.addEventListener('click', (e) => {
     const card = e.target.closest('.mood-card');
+    const resetBtn = e.target.closest('.reset-btn');
+
+    if (resetBtn) {
+        backToSelection();
+        return;
+    }
+
     if (!card || isThinking) return;
 
     const mood = card.getAttribute('data-mood');
@@ -103,6 +111,12 @@ document.addEventListener('click', (e) => {
         handleMood(mood);
     }
 });
+
+function backToSelection() {
+    document.getElementById('selection-page').classList.remove('hidden');
+    document.getElementById('message-area').classList.add('hidden');
+    if (vibeToggleContainer) vibeToggleContainer.classList.remove('hidden');
+}
 
 // 7. AI LOGIC
 const handleMood = async (mood) => {
@@ -120,10 +134,11 @@ const handleMood = async (mood) => {
     loader.classList.remove('hidden');
 
     const isVibe = vibeToggle && vibeToggle.checked;
-    // Updated Prompt to enforce strict formatting and no labels
-const PROMPT = isVibe 
-    ? `Gen Z slang for ${mood}. Format: "Quote" | Do-Action | Don't-Action. NO LABELS. End response after the Don't-Action.` 
-    : `Brutalist noir philosophy for ${mood}. Format: "Quote" | Do-Action | Don't-Action. NO LABELS. End response immediately after the Don't-Action.`;
+    
+    // Strict prompt to minimize extra output
+    const PROMPT = isVibe 
+        ? `Gen Z slang for ${mood}. Format: "Quote" | Do-Action | Don't-Action. NO LABELS. At least 3 words.` 
+        : `Brutalist noir philosophy for ${mood}. Format: "Quote" | Do-Action | Don't-Action. NO LABELS. At least 3 words.`;
 
     const model = "gemini-2.5-flash-lite"; 
     const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${SECURE_GEMINI_KEY}`;
@@ -141,9 +156,12 @@ const PROMPT = isVibe
 
         const data = await response.json();
         const rawText = data.candidates[0].content.parts[0].text.trim();
-        const parts = rawText.replace(/\*/g, '').split('|').map(s => s.trim());
+        
+        // 1. Split by pipe and 2. slice(0, 3) to ignore AI hallucinations
+        const allParts = rawText.replace(/\*/g, '').split('|').map(s => s.trim());
+        const parts = allParts.slice(0, 3); 
 
-        // FIX: Clean prefixes like "Do:" or "Don't:" to avoid duplication
+        // Fix: Clean "Do:" or "Don't:" duplication
         const cleanDo = parts[1] ? parts[1].replace(/^do:?\s*/i, "") : "Wait.";
         const cleanDont = parts[2] ? parts[2].replace(/^don't:?\s*/i, "") : "Panic.";
 
@@ -182,7 +200,6 @@ function checkDailyStatus() {
 
 function showFullPageMessage(mood, dataObj, isReturning = false) {
     document.getElementById('selection-page').classList.add('hidden');
-    // Hide Vibe Toggle on the message page
     if (vibeToggleContainer) vibeToggleContainer.classList.add('hidden');
 
     const area = document.getElementById('message-area');
@@ -192,7 +209,6 @@ function showFullPageMessage(mood, dataObj, isReturning = false) {
     document.getElementById('mood-label').innerText = `TODAY: ${mood}`;
     const rows = document.querySelectorAll('.action-row');
 
-    // Logic for quotes only on the message
     let quotedText = dataObj.quote.startsWith('"') ? dataObj.quote : `"${dataObj.quote}"`;
 
     if (isReturning) {
