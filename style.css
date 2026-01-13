@@ -297,6 +297,16 @@ body.vibe-mode #login-btn:hover {
 
 body.vibe-mode .google-icon { filter: none; }
 
+body.vibe-mode .reset-btn {
+    border-color: #000000 !important;
+    color: #000000 !important;
+    background: transparent !important;
+}
+
+body.vibe-mode .reset-btn:hover {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+}
 /* UTILS & ANIMATIONS */
 .hidden { display: none !important; }
 
