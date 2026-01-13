@@ -67,17 +67,16 @@ if (logoutBtn) logoutBtn.onclick = () => signOut(auth);
 
 // 5. CLOCK & PERSISTENT TOGGLE
 if (vibeToggle) {
-    // Check localStorage on load
-    const savedVibe = localStorage.getItem('vibeEnabled');
-    if (savedVibe === 'true') {
-        vibeToggle.checked = true;
-        document.body.classList.add('vibe-mode');
-    }
+    const savedVibe = localStorage.getItem('vibeEnabled') === 'true';
+    
+    // Apply immediately on load
+    vibeToggle.checked = savedVibe;
+    document.body.classList.toggle('vibe-mode', savedVibe);
 
     vibeToggle.onchange = () => {
         const isEnabled = vibeToggle.checked;
         document.body.classList.toggle('vibe-mode', isEnabled);
-        localStorage.setItem('vibeEnabled', isEnabled); // Save preference
+        localStorage.setItem('vibeEnabled', isEnabled);
     };
 }
 
@@ -115,7 +114,16 @@ document.addEventListener('click', (e) => {
 function backToSelection() {
     document.getElementById('selection-page').classList.remove('hidden');
     document.getElementById('message-area').classList.add('hidden');
-    if (vibeToggleContainer) vibeToggleContainer.classList.remove('hidden');
+    
+    // Ensure the toggle container comes back
+    if (vibeToggleContainer) {
+        vibeToggleContainer.classList.remove('hidden');
+        
+        // RE-SYNC: Make sure the toggle and body still match localStorage
+        const isEnabled = localStorage.getItem('vibeEnabled') === 'true';
+        vibeToggle.checked = isEnabled;
+        document.body.classList.toggle('vibe-mode', isEnabled);
+    }
 }
 
 // 7. AI LOGIC
@@ -251,3 +259,4 @@ function typeWriter(text, id, callback) {
     }
     type();
 }
+
